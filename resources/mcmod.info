@@ -1,0 +1,16 @@
+[
+{
+  "modid": "Finder Mod",
+  "name": "Finder Mod",
+  "description": "Finds stuff.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authors": ["ExampleDude"],
+  "credits": "The Forge and FML guys, for making this example",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
