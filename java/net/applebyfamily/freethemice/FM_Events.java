@@ -34,6 +34,8 @@ import org.lwjgl.util.vector.Vector3f;
 
 
 
+
+
 import sun.awt.windows.ThemeReader;
 
 import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
@@ -66,23 +68,28 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 
 public class FM_Events {
 
-	public ArrayList<Point3d> DrawersList, tmpDrawersList, Waypoints;
+	public ArrayList<FM_Point3d> DrawersList;
+	public ArrayList<FM_Point3d> tmpDrawersList;
+	public ArrayList<FM_Point3d> Waypoints;
 	public boolean calculating;
-	public int range = 10;
-	private boolean _UpdateList;
+	public int range;
+	public boolean _UpdateList;
+	public FM_NBTTags MyNBTWorldSaves;
+	
 	public FM_Events()
 	{
-		DrawersList = new ArrayList<Point3d>();
-		tmpDrawersList = new ArrayList<Point3d>();
-		Waypoints = new ArrayList<Point3d>();
-		_UpdateList = false;
+		this.DrawersList = new ArrayList<FM_Point3d>();
+		this.tmpDrawersList = new ArrayList<FM_Point3d>();
+		this.Waypoints = new ArrayList<FM_Point3d>();
+		this._UpdateList = false;
+		this.MyNBTWorldSaves = new FM_NBTTags("waypoints");
 	}
 	
     public void gameTick()
     {
 
     	
-    	if (calculating == true || _UpdateList == true)
+    	if (this.calculating == true || this._UpdateList == true)
     	{
     		return;
     	}
@@ -90,17 +97,13 @@ public class FM_Events {
 
     	Point3d tmpPlayer = new Point3d((int)FinderMod.instance.thePlayer.posX , (int)FinderMod.instance.thePlayer.posY, (int)FinderMod.instance.thePlayer.posZ );    	
     	 	
-    	calculating = true;
-
-    	
-    	Point3d tmp2 = new Point3d();
-    
+    	this.calculating = true;
 
     	
 		World theWorld = FinderMod.instance.theWorld;
 		
 		int Find = FinderMod.instance.myGuiHandeler._MyGui.searchNumber;
-		tmpDrawersList.clear();
+		this.tmpDrawersList.clear();
 		if (Find == 0)
 		{		
 			if (FinderMod.instance.myGuiHandeler._MyGui.searchName != null)
@@ -109,13 +112,13 @@ public class FM_Events {
 				{
 					if (FinderMod.instance.myGuiHandeler._MyGui.searchName.equalsIgnoreCase("waypoints") == true || FinderMod.instance.myGuiHandeler._MyGui.searchName.equalsIgnoreCase("waypoint") == true)
 					{
-						for( int i = 0; i < Waypoints.size();i++)
+						for( int i = 0; i < this.Waypoints.size();i++)
 						{
-							tmpDrawersList.add((Point3d) Waypoints.get(i).clone());
+							this.tmpDrawersList.add((FM_Point3d) this.Waypoints.get(i).clone());
 						}
 						closeShortRange();
-						_UpdateList = true;
-						calculating = false;
+						this._UpdateList = true;
+						this.calculating = false;
 						return;						
 					}
 						List tmpTEL = FinderMod.MC.theWorld.loadedEntityList;
@@ -124,8 +127,8 @@ public class FM_Events {
 						
 							if (tmpTEL.get(x).toString().toLowerCase().contains(FinderMod.instance.myGuiHandeler._MyGui.searchName.toLowerCase()) == true)					
 							{
-								Point3d tmp = new Point3d(((Entity)tmpTEL.get(x)).posX, ((Entity)tmpTEL.get(x)).posY, ((Entity)tmpTEL.get(x)).posZ);
-								tmpDrawersList.add(tmp);
+								FM_Point3d tmp = new FM_Point3d(((Entity)tmpTEL.get(x)).posX, ((Entity)tmpTEL.get(x)).posY, ((Entity)tmpTEL.get(x)).posZ);
+								this.tmpDrawersList.add(tmp);
 							}
 							
 						}
@@ -135,27 +138,30 @@ public class FM_Events {
 							
 							if (tmpTEL.get(x).toString().toLowerCase().contains(FinderMod.instance.myGuiHandeler._MyGui.searchName.toLowerCase()) == true)					
 							{
-								Point3d tmp = new Point3d(((TileEntity)tmpTEL.get(x)).xCoord, ((TileEntity)tmpTEL.get(x)).yCoord, ((TileEntity)tmpTEL.get(x)).zCoord);
-								tmpDrawersList.add(tmp);
+								FM_Point3d tmp = new FM_Point3d(((TileEntity)tmpTEL.get(x)).xCoord, ((TileEntity)tmpTEL.get(x)).yCoord, ((TileEntity)tmpTEL.get(x)).zCoord);
+								tmp.block = true;
+								this.tmpDrawersList.add(tmp);
 							}
 								
 							
 							
 						}		
-						if (tmpDrawersList.size() == 0)
+						if (this.tmpDrawersList.size() == 0)
 						{
-							for(int x = -range; x< range + 1;x++)
+							for(int x = -this.range; x< this.range + 1;x++)
 							{			
 					    		for(int y = 0; y< 256;y++)
 					    		{
-					        		for(int z = -range; z< range + 1;z++)
+					        		for(int z = -this.range; z< this.range + 1;z++)
 					        		{
 										if (theWorld.getBlock((int)FinderMod.instance.thePlayer.posX + x, y, (int)FinderMod.instance.thePlayer.posZ + z).getUnlocalizedName().toString().toLowerCase().contains(FinderMod.instance.myGuiHandeler._MyGui.searchName.toLowerCase()) == true)					
 										{        				
-					        				Point3d tmp = new Point3d((int)FinderMod.instance.thePlayer.posX + x, y, (int)FinderMod.instance.thePlayer.posZ + z);
+											FM_Point3d tmp = new FM_Point3d((int)FinderMod.instance.thePlayer.posX + x, y, (int)FinderMod.instance.thePlayer.posZ + z);
+											
 					        				if (tmp != null)
 					        				{
-					        					tmpDrawersList.add(tmp);
+					        					tmp.block = true;
+					        					this.tmpDrawersList.add(tmp);
 					        				}
 					        				
 					        			}
@@ -168,27 +174,28 @@ public class FM_Events {
 						closeShortRange();
 				}				
 			}
-			_UpdateList = true;
-			calculating = false;
+			this._UpdateList = true;
+			this.calculating = false;
 			return;
 		}
 			
 		
 		if (Find > 0)
 		{
-			for(int x = -range; x< range + 1;x++)
+			for(int x = -this.range; x< this.range + 1;x++)
 			{			
 	    		for(int y = 0; y< 256;y++)
 	    		{
-	        		for(int z = -range; z< range + 1;z++)
+	        		for(int z = -this.range; z< this.range + 1;z++)
 	        		{
 	        			
 	        			if (Block.getIdFromBlock(theWorld.getBlock((int)FinderMod.instance.thePlayer.posX + x, y, (int)FinderMod.instance.thePlayer.posZ + z)) == Find)            				
 	        			{	        				
-	        				Point3d tmp = new Point3d((int)FinderMod.instance.thePlayer.posX + x, y, (int)FinderMod.instance.thePlayer.posZ + z);
+	        				FM_Point3d tmp = new FM_Point3d((int)FinderMod.instance.thePlayer.posX + x, y, (int)FinderMod.instance.thePlayer.posZ + z);
 	        				if (tmp != null)
 	        				{
-	        					tmpDrawersList.add(tmp);
+	        					tmp.block = true;
+	        					this.tmpDrawersList.add(tmp);
 	        				}
 	        				
 	        			}
@@ -201,13 +208,13 @@ public class FM_Events {
 		checkRang();
 		closeShortRange();
 
-		_UpdateList = true;
-		calculating = false;
+		this._UpdateList = true;
+		this.calculating = false;
     }
     public String getSearchingFor()
     {
 		int Find = FinderMod.instance.myGuiHandeler._MyGui.searchNumber;
-		tmpDrawersList.clear();
+		this.tmpDrawersList.clear();
 		if (Find == 0)
 		{		
 			if (FinderMod.instance.myGuiHandeler._MyGui.searchName != null)
@@ -227,18 +234,18 @@ public class FM_Events {
 		
 				
 		try {
-			if (tmpDrawersList.size() > 1)
+			if (this.tmpDrawersList.size() > 1)
 			{
-				Collections.sort(tmpDrawersList, new Point3dCompare());
+				Collections.sort(this.tmpDrawersList, new Point3dCompare());
 			}
 		} catch (Exception e) {
 			return;
 		}
 		
 		
-		if (tmpDrawersList.size() > 100)
+		if (this.tmpDrawersList.size() > 100)
 		{
-			tmpDrawersList.subList(100, tmpDrawersList.size()).clear();	
+			this.tmpDrawersList.subList(100, this.tmpDrawersList.size()).clear();	
 		}
 		
 	}
@@ -258,76 +265,34 @@ public class FM_Events {
 		return by;
 	}
 	private void checkRang() {
-		if (tmpDrawersList.size() < 100)
+		if (this.tmpDrawersList.size() < 100)
 		{
-			range = range + 10;
+			this.range = this.range + 10;
 			//System.out.println(range);
 			int by = getMaxRange();
 			
-			if (range >  by)
+			if (this.range >  by)
 			{
-				range = 10;
+				this.range = 10;
 				
 			}
 		}
 	}
     public void playerEnterWorld(){
-    	NBTTagCompound var4 = readNBTSettings();
-    	Waypoints.clear();    	
+    	this.MyNBTWorldSaves.FileName = getFileName();
+    	NBTTagCompound var4 = this.MyNBTWorldSaves.readNBTSettings();
+    	this.Waypoints.clear();    	
     	int maxCount = var4.getInteger("max");
     	for(int i = 0; i<maxCount;i++)
     	{
     		double pointX = var4.getDouble(i + "_point_X");
     		double pointY = var4.getDouble(i + "_point_Y");
     		double pointZ = var4.getDouble(i + "_point_Z");
-    		Point3d tmpPoint = new Point3d(pointX, pointY, pointZ);
-    		Waypoints.add((Point3d) tmpPoint.clone());    		
+    		FM_Point3d tmpPoint = new FM_Point3d(pointX, pointY, pointZ);
+    		this.Waypoints.add((FM_Point3d) tmpPoint.clone());    		
     	}
     	
     }
-	private String checkPath(String Path)
-	{
-		String FileSeparator = FinderMod.instance.MC.mcDataDir.separator;
-        String ASP = Path;
-		if (ASP.endsWith(".") == true)
-		{
-			ASP = ASP.substring(0, ASP.length() - 1);
-		}
-		if (ASP.endsWith(FileSeparator) == false)
-		{
-			ASP = ASP + FileSeparator;			
-		}
-		return ASP;
-	}
-	private NBTTagCompound readNBTSettings()
-	{ 
-		String MainLocation = getMainLocation();
-		
-		NBTTagCompound par1NBTTagCompoundSettings;
-		String NameP =getFileName();
-        File var1 = new File(MainLocation,  NameP);       
-        if (var1.exists())
-        {
-            try
-            {       		
-        		
-            	par1NBTTagCompoundSettings = CompressedStreamTools.readCompressed(new FileInputStream(var1));
-            	
-            	return par1NBTTagCompoundSettings.getCompoundTag("Waypoints");
-            }
-            catch (Exception var5)
-            {
-                var5.printStackTrace();
-            }
-        }
-        else
-        {        	
-            NBTTagCompound var4 = new NBTTagCompound();
-            saveNBTSettings(var4);                      
-            return var4;
-        }
-        return null;	
-	}
 	public String getFileName()
 	{
 		String NameP = "Multiplayer";
@@ -339,37 +304,6 @@ public class FM_Events {
 		}
 		return "Seed_" + NameP + ".dat";
 	}
-	public void saveNBTSettings(NBTTagCompound var4)
-	{
-		String MainLocation = getMainLocation();
-		
-		NBTTagCompound par1NBTTagCompoundSettings = new NBTTagCompound();
-        try
-        {
-        	String NameP =getFileName();
-        	par1NBTTagCompoundSettings.setTag("Waypoints", var4);
-            File var3 = new File(MainLocation,  NameP);            
-            CompressedStreamTools.writeCompressed(par1NBTTagCompoundSettings, new FileOutputStream(var3));
-            
-        }
-        catch (Exception var5)
-        {
-            
-        }
-	}	
-	
-	private String getMainLocation() {
-		String FileSeparator = FinderMod.instance.MC.mcDataDir.separator;
-		String MainLocation = checkPath(Minecraft.getMinecraft().mcDataDir.getAbsolutePath());
-        File versionsDir = new File(MainLocation, "FinderMod");
-        if (versionsDir.exists() == false)
-        {
-        	versionsDir.mkdir();
-        }
-		MainLocation = checkPath(versionsDir.getAbsolutePath());
-		return MainLocation;
-	}	
-    
     @SubscribeEvent
 	public void onWorldRender( final RenderWorldLastEvent event )
     {
@@ -377,44 +311,47 @@ public class FM_Events {
     	if (FinderMod.instance.loaded == true)
     	{
 
-	        	/*Collections.sort(DrawersList, new Point3dCompare());
-    			int maxCount = DrawersList.size();
-    			if (maxCount > 100)
+    			for(int i = this.DrawersList.size() - 1; i > -1; i--)
     			{
-    				maxCount = 100;
-    			}*/
-    			for(int i = DrawersList.size() - 1; i > -1; i--)
-    			{
-    				Point3d tmp = DrawersList.get(i);
+    				FM_Point3d tmp = this.DrawersList.get(i);
     				if (tmp != null)
     				{
 	    				if (i < 1)
 	    				{
-	    					drawAroundBlock((int)tmp.x, (int)tmp.y, (int)tmp.z, 0.0, 0.9, 0.0);
+	    					tmp.setRGB(0.0, 0.9, 0.0);
+	    					drawAroundBlock(tmp);
 	    				}
 	    				else
 	    				{
-	    					drawAroundBlock((int)tmp.x, (int)tmp.y, (int)tmp.z, 0.9, 0.0, 0.0);
+	    					tmp.setRGB(0.9, 0.0, 0.0);
+	    					drawAroundBlock(tmp);
 	    				}
     				}
     			}
     			
-    			if (_UpdateList == true)
+    			if (this._UpdateList == true)
     			{
-    				DrawersList = (ArrayList<Point3d>) tmpDrawersList.clone();
-    				_UpdateList = false;
+    				this.DrawersList = (ArrayList<FM_Point3d>) this.tmpDrawersList.clone();
+    				this._UpdateList = false;
     				//System.out.println("Drawer Updated: " + DrawersList.size());
     			}
     	}
     }
 
-	private void drawAroundBlock(int x, int y, int z, double r, double g, double b ) {
-		final Block blockb = FinderMod.instance.theWorld.getBlock(x,y, z );
-		//System.out.println(Block.getIdFromBlock( blockb ));
-		if( Block.getIdFromBlock( blockb ) != 0 || FinderMod.instance.myGuiHandeler._MyGui.searchNumber < 1) {
+	private void drawAroundBlock(FM_Point3d myPoint3d ) {
+		if (myPoint3d.block == true)
+		{
+			final Block blockb = FinderMod.instance.theWorld.getBlock(myPoint3d.x(), myPoint3d.y(), myPoint3d.z());
+			if( Block.getIdFromBlock( blockb ) != 0) {
+
+				drawESP( AxisAlignedBB.getBoundingBox( myPoint3d.x, myPoint3d.y,myPoint3d.z,
+						myPoint3d.x + 1.0f, myPoint3d.y + 1.0f,myPoint3d.z + 1.0f ), myPoint3d.r, myPoint3d.g, myPoint3d.b );
+			}
+		}
+		else
+		{				drawESP( AxisAlignedBB.getBoundingBox( myPoint3d.x - 0.5f, myPoint3d.y,myPoint3d.z - 0.5f,
+				myPoint3d.x + 0.5f, myPoint3d.y + 1.0f,myPoint3d.z + 0.5f ), myPoint3d.r, myPoint3d.g, myPoint3d.b );
 			
-			drawESP( AxisAlignedBB.getBoundingBox( x, y,z,
-					x + 1, y + 1,z + 1 ), r, g, b );
 		}
 	}
 

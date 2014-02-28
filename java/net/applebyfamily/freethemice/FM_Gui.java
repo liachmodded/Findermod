@@ -18,6 +18,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 
+import org.lwjgl.LWJGLUtil;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
@@ -126,7 +127,8 @@ public class FM_Gui extends GuiScreen
   @Override
   public void keyTyped(char c, int i){
 	  super.keyTyped(c, i);
-	  //System.out.println("Keyboard: " + i);
+	   
+	  //System.out.println("Keyboard: " + );
 
 	  if (_takeInput == false)
 	  {

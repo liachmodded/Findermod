@@ -9,8 +9,13 @@ import javax.vecmath.Point3d;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraft.command.ICommandSender;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ChatComponentStyle;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatStyle;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.MovingObjectPosition;
@@ -42,7 +47,7 @@ public class FM_Keyboard {
 	public void listener()
 	{	
 		try {
-			if (Keyboard.isKeyDown(Keyboard.KEY_B) == true && _iskeydown_B == false && FinderMod.instance.myGuiHandeler._MyGui._visible == false && FinderMod.instance.MC.currentScreen == null)
+			if (Keyboard.isKeyDown(FinderMod.instance.NumberforB[0]) == true && _iskeydown_B == false && FinderMod.instance.myGuiHandeler._MyGui._visible == false && FinderMod.instance.MC.currentScreen == null)
 			{
 				_iskeydown_B = true;
 				MovingObjectPosition pos = FinderMod.MC.objectMouseOver;
@@ -54,32 +59,34 @@ public class FM_Keyboard {
 				FinderMod.instance.thePlayer.openGui(FinderMod.instance, 0, FinderMod.instance.theWorld, (int)FinderMod.instance.thePlayer.posX,  (int)FinderMod.instance.thePlayer.posY,  (int)FinderMod.instance.thePlayer.posZ);
 							
 			}
-			if (Keyboard.isKeyDown(Keyboard.KEY_B) == false && _iskeydown_B == true)
+			if (Keyboard.isKeyDown(FinderMod.instance.NumberforB[0]) == false && _iskeydown_B == true)
 			{
 				FinderMod.instance.myGuiHandeler._MyGui._takeInput = true;
 				_iskeydown_B = false;
 			}
-			if (Keyboard.isKeyDown(Keyboard.KEY_N) == true && _iskeydown_N == false && FinderMod.instance.myGuiHandeler._MyGui._visible == false && FinderMod.instance.MC.currentScreen == null)
+			if (Keyboard.isKeyDown(FinderMod.instance.NumberforN[0]) == true && _iskeydown_N == false && FinderMod.instance.myGuiHandeler._MyGui._visible == false && FinderMod.instance.MC.currentScreen == null)
 			{				
 				_iskeydown_N = true;				
 				Point3d testTMP = new Point3d(FinderMod.instance.thePlayer.posX, FinderMod.instance.thePlayer.posY, FinderMod.instance.thePlayer.posZ);
 				
 				for(int i = 0; i < FinderMod.instance.eventManager.Waypoints.size(); i ++)
 				{
-					if (FinderMod.instance.eventManager.Waypoints.get(i).distance(testTMP) < 10)
+					if (FinderMod.instance.eventManager.Waypoints.get(i).distance(testTMP) < 5)
 					{
 						FinderMod.instance.eventManager.Waypoints.remove(i);
-						FinderMod.instance.thePlayer.sendChatMessage("Waypoint deleted, search for 'waypoints' to see waypoints!");
+						 
+						FinderMod.instance.sendChatMessage("Waypoint deleted, search for 'waypoints' to see waypoints!");
 						saveWaypoints();
 						return;
 					}
 				}
 				
-				FinderMod.instance.eventManager.Waypoints.add(new Point3d(FinderMod.instance.thePlayer.posX, FinderMod.instance.thePlayer.posY, FinderMod.instance.thePlayer.posZ));
-				FinderMod.instance.thePlayer.sendChatMessage("Waypoint added, search for 'waypoints' to see waypoints!");
+				//MinecraftServer.getServer().
+				FinderMod.instance.eventManager.Waypoints.add(new FM_Point3d(FinderMod.instance.thePlayer.posX, FinderMod.instance.thePlayer.posY, FinderMod.instance.thePlayer.posZ));
+				FinderMod.instance.sendChatMessage("Waypoint added, search for 'waypoints' to see waypoints!");				
 				saveWaypoints();
 			}
-			if (Keyboard.isKeyDown(Keyboard.KEY_N) == false && _iskeydown_N == true)
+			if (Keyboard.isKeyDown(FinderMod.instance.NumberforN[0]) == false && _iskeydown_N == true)
 			{
 				_iskeydown_N = false;
 			}
@@ -97,6 +104,7 @@ public class FM_Keyboard {
 			par1NBTTagCompoundSettings.setDouble(i + "_point_Y",  FinderMod.instance.eventManager.Waypoints.get(i).y);
 			par1NBTTagCompoundSettings.setDouble(i + "_point_Z",  FinderMod.instance.eventManager.Waypoints.get(i).z);
 		}
-		FinderMod.instance.eventManager.saveNBTSettings(par1NBTTagCompoundSettings);
+		FinderMod.instance.eventManager.MyNBTWorldSaves.FileName = FinderMod.instance.eventManager.getFileName();
+		FinderMod.instance.eventManager.MyNBTWorldSaves.saveNBTSettings(par1NBTTagCompoundSettings);
 	}
 }

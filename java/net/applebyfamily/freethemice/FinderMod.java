@@ -14,12 +14,21 @@ import org.lwjgl.opengl.GL11;
 
 
 
+
+
+
+
+import com.google.gson.Gson;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.IChatComponent;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -38,8 +47,9 @@ import cpw.mods.fml.server.FMLServerHandler;
 @Mod(modid = FinderMod.MODID, version = FinderMod.VERSION)
 public class FinderMod {
 	
+	private FM_NBTTags MyNBTSetting;
     public static final String MODID = "Finder Mod";
-    public static final String VERSION = "1.0.172";
+    public static final String VERSION = "1.1.172";
     public EntityClientPlayerMP thePlayer;
     public World theWorld;
     
@@ -57,17 +67,43 @@ public class FinderMod {
     public Tessellator mainDraw ;
     public FM_GuiHandler myGuiHandeler;
     public FM_Events eventManager;
+    public int[] NumberforB = new int[2];
+    public int[] NumberforN = new int[2];
+    
     
     @SidedProxy(clientSide = "net.applebyfamily.freethemice.ClientProxy", serverSide = "net.applebyfamily.freethemice.CommonProxy")
     public static ClientProxy proxy;
     
 
+    public void sendChatMessage(String textout)
+    {
+   	
+    	IChatComponent GoinOut =IChatComponent.Serializer.func_150699_a("FinderMod");
+    	GoinOut.appendText(": " + textout);
+
+    	Minecraft.getMinecraft().ingameGUI.getChatGUI().printChatMessage(GoinOut);
+    	
+    }
+
+	private void setupKeyBinding(String Discription, int KeyCode) {
+
+		    	KeyBinding[] tmp111 = new KeyBinding[Minecraft.getMinecraft().gameSettings.keyBindings.length + 1];
+		    	for(int i = 0; i < Minecraft.getMinecraft().gameSettings.keyBindings.length;i++)
+		    	{
+		    		tmp111[i] = Minecraft.getMinecraft().gameSettings.keyBindings[i];
+		    	}
+		    	tmp111[Minecraft.getMinecraft().gameSettings.keyBindings.length] = new KeyBinding(Discription, KeyCode, "key.categories.misc");
+		    	
+		    	Minecraft.getMinecraft().gameSettings.keyBindings = tmp111.clone();
+	}
     
     @EventHandler
     public void init(FMLInitializationEvent event)
     {    	
-
+    	
     	instance = this;
+    	MyNBTSetting = new FM_NBTTags("settings");
+    	MyNBTSetting.FileName = "SettingsAreHere.dat";
     	
     	MC = FMLClientHandler.instance().getClient();
     	myKeyboard = new FM_Keyboard();
@@ -81,13 +117,48 @@ public class FinderMod {
     	MinecraftForge.EVENT_BUS.register(eventManager);
     	
     	
+    	NBTTagCompound tmpNBTTag = MyNBTSetting.readNBTSettings();
+    	
+    	NumberforB[0] = tmpNBTTag.getInteger("Finder: Menu");
+    	if (NumberforB[0] == 0)
+    	{
+    		NumberforB[0] = 48;
+    	}
+    	NumberforB[1] = Minecraft.getMinecraft().gameSettings.keyBindings.length;
+    	setupKeyBinding("Finder: Menu", NumberforB[0]);
+    	
+    	NumberforN[0] = tmpNBTTag.getInteger("Finder: Add/Delete Waypoint");
+    	if (NumberforN[0] == 0)
+    	{
+    		NumberforN[0] = 49;
+    	}
+    	NumberforN[1] = Minecraft.getMinecraft().gameSettings.keyBindings.length;
+    	setupKeyBinding("Finder: Add/Delete Waypoint", NumberforN[0]);
+    	
+    	
+    	
     	
     	GameTick = new Timer();
     	GameTick.scheduleAtFixedRate(new TimerTask() {
 			
 			@Override
 			public void run() {
-
+				if (NumberforB[0] != Minecraft.getMinecraft().gameSettings.keyBindings[NumberforB[1]].getKeyCode())
+				{
+					NumberforB[0]  = Minecraft.getMinecraft().gameSettings.keyBindings[NumberforB[1]].getKeyCode();
+					NBTTagCompound tmpNBTTag = MyNBTSetting.readNBTSettings();
+					tmpNBTTag.setInteger("Finder: Menu", Minecraft.getMinecraft().gameSettings.keyBindings[NumberforB[1]].getKeyCode());
+					MyNBTSetting.saveNBTSettings(tmpNBTTag);
+					System.out.println("Saved B");
+				}
+				if (NumberforN[0] != Minecraft.getMinecraft().gameSettings.keyBindings[NumberforN[1]].getKeyCode())
+				{
+					NumberforN[0]  = Minecraft.getMinecraft().gameSettings.keyBindings[NumberforN[1]].getKeyCode();
+					NBTTagCompound tmpNBTTag = MyNBTSetting.readNBTSettings();					
+					tmpNBTTag.setInteger("Finder: Add/Delete Waypoint", Minecraft.getMinecraft().gameSettings.keyBindings[NumberforN[1]].getKeyCode());
+					MyNBTSetting.saveNBTSettings(tmpNBTTag);
+					System.out.println("Saved N");
+				}
 				// TODO Auto-generated method stub
 				if (thePlayer == null)
 				{
