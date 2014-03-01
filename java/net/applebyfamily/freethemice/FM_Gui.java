@@ -42,12 +42,9 @@ public class FM_Gui extends GuiScreen
     super();
 
     searchNumber  = 0;
-    // We need this to invoke the render engine.
+
     this.mc = FMLClientHandler.instance().getClient();
 
-	//int posX = (this.mc.displayWidth - 150) / 2;
-	//int posY = (this.mc.displayHeight - 20) / 2;
-	  //System.out.println(posX + "." + posY);
     textfield = new GuiTextField(mc.fontRenderer, 80, 80, 150, 20); 
     textfield.setText("56");
     
@@ -85,6 +82,7 @@ public class FM_Gui extends GuiScreen
     labels[8] = new FM_GuiLabel(mc.fontRenderer, 10, 210);
     labels[8].setText("Found: 0/100");
     
+    
     textfield.setFocused(true);
 	  
   }
@@ -98,11 +96,12 @@ public class FM_Gui extends GuiScreen
   {
 	  
 	  try {
-		drawDefaultBackground();
+		  drawDefaultBackground();
 
 		 labels[6].setText("Searching for: " + FinderMod.instance.eventManager.getSearchingFor());
 		 labels[7].setText("Current Range: " + FinderMod.instance.eventManager.range + "/" +  FinderMod.instance.eventManager.getMaxRange());
-		 labels[8].setText("Found: " + FinderMod.instance.eventManager.DrawersList.size() + "/100"); 
+		 labels[8].setText("Found: " + FinderMod.instance.eventManager._FoundCount + "/100");
+		
 				 
 		for(int i = 0; i <labels.length; i++)
 		{
@@ -159,6 +158,7 @@ public class FM_Gui extends GuiScreen
 		  
 		  FinderMod.instance.thePlayer.closeScreen();
 		  FinderMod.instance.eventManager.range = 10;	
+		  System.out.println("-----");
 		  _visible = false;		  
 		  return;
 	  }

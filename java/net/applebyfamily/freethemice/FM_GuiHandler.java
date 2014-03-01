@@ -13,6 +13,7 @@ public class FM_GuiHandler implements IGuiHandler{
 	{
 		NetworkRegistry.INSTANCE.registerGuiHandler(FinderMod.instance, this);
 		_MyGui = new FM_Gui();
+		
 	}
 	@Override
 	public Object getClientGuiElement(int ID, EntityPlayer player, World world,

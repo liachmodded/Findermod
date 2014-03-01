@@ -21,27 +21,14 @@ import org.lwjgl.util.vector.Vector3f;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import sun.awt.windows.ThemeReader;
 
 import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.texture.ITextureObject;
@@ -59,7 +46,11 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraftforge.client.MinecraftForgeClient;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.common.MinecraftForge;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent.ItemPickupEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
@@ -75,7 +66,7 @@ public class FM_Events {
 	public int range;
 	public boolean _UpdateList;
 	public FM_NBTTags MyNBTWorldSaves;
-	
+	public int _FoundCount = 0;
 	public FM_Events()
 	{
 		this.DrawersList = new ArrayList<FM_Point3d>();
@@ -84,7 +75,7 @@ public class FM_Events {
 		this._UpdateList = false;
 		this.MyNBTWorldSaves = new FM_NBTTags("waypoints");
 	}
-	
+
     public void gameTick()
     {
 
@@ -104,23 +95,27 @@ public class FM_Events {
 		
 		int Find = FinderMod.instance.myGuiHandeler._MyGui.searchNumber;
 		this.tmpDrawersList.clear();
+		boolean A = false,B = false,C= false;
 		if (Find == 0)
 		{		
 			if (FinderMod.instance.myGuiHandeler._MyGui.searchName != null)
 			{
 				if (FinderMod.instance.myGuiHandeler._MyGui.searchName.equals("") == false)
 				{
-					if (FinderMod.instance.myGuiHandeler._MyGui.searchName.equalsIgnoreCase("waypoints") == true || FinderMod.instance.myGuiHandeler._MyGui.searchName.equalsIgnoreCase("waypoint") == true)
-					{
-						for( int i = 0; i < this.Waypoints.size();i++)
+						if (FinderMod.instance.myGuiHandeler._MyGui.searchName.equalsIgnoreCase("waypoints") == true || FinderMod.instance.myGuiHandeler._MyGui.searchName.equalsIgnoreCase("waypoint") == true)
 						{
-							this.tmpDrawersList.add((FM_Point3d) this.Waypoints.get(i).clone());
+							for( int i = 0; i < this.Waypoints.size();i++)
+							{
+								this.tmpDrawersList.add((FM_Point3d) this.Waypoints.get(i).clone());
+							}
+							closeShortRange();
+							
+							this._UpdateList = true;
+							this.calculating = false;
+							this._FoundCount = this.tmpDrawersList.size();
+							return;						
 						}
-						closeShortRange();
-						this._UpdateList = true;
-						this.calculating = false;
-						return;						
-					}
+						
 						List tmpTEL = FinderMod.MC.theWorld.loadedEntityList;
 						for(int x = 0; x< tmpTEL.size();x++)
 						{
@@ -130,6 +125,7 @@ public class FM_Events {
 								FM_Point3d tmp = new FM_Point3d(((Entity)tmpTEL.get(x)).posX, ((Entity)tmpTEL.get(x)).posY, ((Entity)tmpTEL.get(x)).posZ);
 								this.tmpDrawersList.add(tmp);
 							}
+							
 							
 						}
 						tmpTEL = FinderMod.MC.theWorld.loadedTileEntityList;
@@ -168,14 +164,16 @@ public class FM_Events {
 					        			
 					        		}
 					    		}
+					    		
 							}
 							checkRang();
 						}
 						closeShortRange();
 				}				
-			}
+			}			
 			this._UpdateList = true;
 			this.calculating = false;
+			this._FoundCount = this.tmpDrawersList.size();
 			return;
 		}
 			
@@ -207,14 +205,13 @@ public class FM_Events {
 		}		
 		checkRang();
 		closeShortRange();
-
 		this._UpdateList = true;
 		this.calculating = false;
+		this._FoundCount = this.tmpDrawersList.size();
     }
     public String getSearchingFor()
     {
 		int Find = FinderMod.instance.myGuiHandeler._MyGui.searchNumber;
-		this.tmpDrawersList.clear();
 		if (Find == 0)
 		{		
 			if (FinderMod.instance.myGuiHandeler._MyGui.searchName != null)
@@ -300,42 +297,84 @@ public class FM_Events {
 			NameP = MinecraftServer.getServer().worldServers[0].getWorldInfo().getSeed() + "";
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			
+			try {
+				
+				NameP = Minecraft.getMinecraft().func_147104_D().serverIP;
+				return "Multi_" + NameP + ".dat";
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				
+			}
 		}
 		return "Seed_" + NameP + ".dat";
 	}
+	
+
+	
+    @SubscribeEvent
+	public void onOverlayRender( final RenderGameOverlayEvent.Text event )
+    {
+    	if (FinderMod.instance.loaded == true)
+    	{
+	    	if(Minecraft.getMinecraft().currentScreen == null)
+	    	{
+	    		if (getSearchingFor().equalsIgnoreCase("nothing") == false)
+	    		{
+	    			ScaledResolution scaledresolution = new ScaledResolution(Minecraft.getMinecraft().gameSettings, Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight);
+	    			FontRenderer fontrenderer = Minecraft.getMinecraft().fontRenderer;
+	    			int width = scaledresolution.getScaledWidth();
+	    			int height = scaledresolution.getScaledHeight();
+	    			fontrenderer.drawStringWithShadow(this._FoundCount +  "/100", width/2 - 10, 10, 0xffffffff);
+	    		}
+	    	}
+    	}
+    }
     @SubscribeEvent
 	public void onWorldRender( final RenderWorldLastEvent event )
     {
-   
+    	
     	if (FinderMod.instance.loaded == true)
     	{
-
+    			
     			for(int i = this.DrawersList.size() - 1; i > -1; i--)
     			{
     				FM_Point3d tmp = this.DrawersList.get(i);
     				if (tmp != null)
     				{
-	    				if (i < 1)
-	    				{
-	    					tmp.setRGB(0.0, 0.9, 0.0);
-	    					drawAroundBlock(tmp);
-	    				}
-	    				else
-	    				{
-	    					tmp.setRGB(0.9, 0.0, 0.0);
-	    					drawAroundBlock(tmp);
-	    				}
+    					
+    					  switch (i) {
+	  			            case 0: 
+	  			            		tmp.setRGB(0.0, 0.0, 0.9);
+	  			            		 break;    					  
+    			            case 1: 
+    			            		tmp.setRGB(0.0, 0.9, 0.0);
+    			                     break;
+    			            case 2:  
+    			            		tmp.setRGB(0.9, 0.9, 0.2);
+    			                     break;
+    			            case 3:  
+			            			tmp.setRGB(0.9, 0.4, 0.0);
+			            			 break;
+
+    			            default: 
+    			            		tmp.setRGB(0.9, 0.0, 0.0);
+    			                     break;
+    			        }				
+    					  drawAroundBlock(tmp);
     				}
     			}
     			
     			if (this._UpdateList == true)
     			{
-    				this.DrawersList = (ArrayList<FM_Point3d>) this.tmpDrawersList.clone();
+
+					this.DrawersList = (ArrayList<FM_Point3d>) this.tmpDrawersList.clone();
+				
     				this._UpdateList = false;
     				//System.out.println("Drawer Updated: " + DrawersList.size());
     			}
     	}
+    	
+ 
     }
 
 	private void drawAroundBlock(FM_Point3d myPoint3d ) {
@@ -378,10 +417,12 @@ public class FM_Events {
 		GL11.glDepthMask( true );
 		GL11.glDisable( 3042 );
 		GL11.glPopMatrix( );
+		
 		Minecraft.getMinecraft( ).entityRenderer.enableLightmap( 0 );
 	}
     public static void drawBoundingBox( final AxisAlignedBB axisalignedbb ) {
 		final Tessellator tessellator = Tessellator.instance;
+
 		tessellator.startDrawingQuads( ); // starts x
 		tessellator.addVertex( axisalignedbb.minX - RenderManager.renderPosX, axisalignedbb.minY
 				- RenderManager.renderPosY, axisalignedbb.minZ - RenderManager.renderPosZ );

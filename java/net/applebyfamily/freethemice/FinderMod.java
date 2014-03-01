@@ -18,10 +18,14 @@ import org.lwjgl.opengl.GL11;
 
 
 
+
+
 import com.google.gson.Gson;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
@@ -49,7 +53,7 @@ public class FinderMod {
 	
 	private FM_NBTTags MyNBTSetting;
     public static final String MODID = "Finder Mod";
-    public static final String VERSION = "1.1.172";
+    public static final String VERSION = "1.2.172";
     public EntityClientPlayerMP thePlayer;
     public World theWorld;
     
@@ -73,7 +77,7 @@ public class FinderMod {
     
     @SidedProxy(clientSide = "net.applebyfamily.freethemice.ClientProxy", serverSide = "net.applebyfamily.freethemice.CommonProxy")
     public static ClientProxy proxy;
-    
+
 
     public void sendChatMessage(String textout)
     {
@@ -200,7 +204,7 @@ public class FinderMod {
 					{				    				    					    	
 						runOnEnter = true;
 						eventManager.playerEnterWorld();	
-					}
+					}				
 					eventManager.gameTick();
 				}
 			}
