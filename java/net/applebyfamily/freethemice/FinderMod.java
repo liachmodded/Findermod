@@ -1,170 +1,180 @@
 package net.applebyfamily.freethemice;
 
-
-import cpw.mods.fml.client.FMLClientHandler;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.Mod.Instance;
-import cpw.mods.fml.common.SidedProxy;
-import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityClientPlayerMP;
-import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.IChatComponent;
-import net.minecraft.world.World;
+import net.minecraft.entity.Entity;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Timer;
+import java.util.TimerTask;
 
-@Mod(modid = FinderMod.MODID, version = FinderMod.VERSION)
+import javax.annotation.Nullable;
+
+@Mod(modid = FinderMod.MOD_ID, version = FinderMod.VERSION)
 public class FinderMod {
 
-    public static final String MODID = "Finder Mod";
-    public static final String VERSION = "1.0.1710";
-    @Instance(value = MODID)
+    static final String MOD_ID = "Finder Mod";
+    static final String VERSION = "1.0.19";
+    private static final Minecraft MC = Minecraft.getMinecraft();
     public static FinderMod instance;
-    public static Minecraft MC;
-    public static FM_Keyboard myKeyboard;
-    @SidedProxy(clientSide = "net.applebyfamily.freethemice.ClientProxy", serverSide = "net.applebyfamily.freethemice.CommonProxy")
-    public static ClientProxy proxy;
-    public EntityClientPlayerMP thePlayer;
-    public World theWorld;
-    public Timer GameTick;
-    public boolean loaded, runOnEnter;
-    public int testCount = 0;
-    public Tessellator mainDraw;
-    public FM_GuiHandler myGuiHandeler;
-    public FM_Events eventManager;
-    public int[] NumberforB = new int[2];
-    public int[] NumberforN = new int[2];
-    private FM_NBTTags MyNBTSetting;
-    private int ticker = 0;
-
-    public void sendChatMessage(String textout) {
-
-        IChatComponent GoinOut = IChatComponent.Serializer.func_150699_a("FinderMod");
-        GoinOut.appendText(": " + textout);
-
-        Minecraft.getMinecraft().ingameGUI.getChatGUI().printChatMessage(GoinOut);
-
-    }
-
-    private void setupKeyBinding(String Discription, int KeyCode) {
-
-        KeyBinding[] tmp111 = new KeyBinding[Minecraft.getMinecraft().gameSettings.keyBindings.length + 1];
-        for (int i = 0; i < Minecraft.getMinecraft().gameSettings.keyBindings.length; i++) {
-            tmp111[i] = Minecraft.getMinecraft().gameSettings.keyBindings[i];
-        }
-        tmp111[Minecraft.getMinecraft().gameSettings.keyBindings.length] = new KeyBinding(Discription, KeyCode, "key.categories.misc");
-
-        Minecraft.getMinecraft().gameSettings.keyBindings = tmp111.clone();
-    }
+    int range = 30;
+    String searching = "";
+    int found = 0;
+    private FM_Events eventManager;
+    // new fields
+    private KeyBinding menuKey;
+    private FM_Gui gui;
+    private boolean clientRunning = false;
+    Timer timer;
 
     @EventHandler
-    public void init(FMLLoadCompleteEvent event) {
-
+    @SuppressWarnings("unused")
+    public void init(FMLInitializationEvent event) {
         instance = this;
-        MyNBTSetting = new FM_NBTTags("settings");
-        MyNBTSetting.FileName = "SettingsAreHere.dat";
-        FMLCommonHandler.instance().bus().register(this);
-
-        MC = FMLClientHandler.instance().getClient();
-        myKeyboard = new FM_Keyboard();
-
-        myGuiHandeler = new FM_GuiHandler();
-        MinecraftForge.EVENT_BUS.register(myGuiHandeler);
-
+        MinecraftForge.EVENT_BUS.register(this);
 
         eventManager = new FM_Events();
-        FMLCommonHandler.instance().bus().register(eventManager);
         MinecraftForge.EVENT_BUS.register(eventManager);
 
-
-        NBTTagCompound tmpNBTTag = MyNBTSetting.readNBTSettings();
-
-        NumberforB[0] = tmpNBTTag.getInteger("Finder: Menu");
-        if (NumberforB[0] == 0) {
-            NumberforB[0] = 48;
-        }
-        NumberforB[1] = Minecraft.getMinecraft().gameSettings.keyBindings.length;
-        setupKeyBinding("Finder: Menu", NumberforB[0]);
-
-        NumberforN[0] = tmpNBTTag.getInteger("Finder: Add/Delete Waypoint");
-        if (NumberforN[0] == 0) {
-            NumberforN[0] = 49;
-        }
-        NumberforN[1] = Minecraft.getMinecraft().gameSettings.keyBindings.length;
-        setupKeyBinding("Finder: Add/Delete Waypoint", NumberforN[0]);
-
+        menuKey = new KeyBinding("Finder: Menu", 48, "key.categories.misc");
+        ClientRegistry.registerKeyBinding(menuKey);
+        timer = new Timer("Finder");
     }
 
     @SubscribeEvent
-    public void onTick(TickEvent.ClientTickEvent e) {
-        ticker++;
-        if (ticker < 20) {
-            return;
-        }
-        Minecraft.getMinecraft().func_152344_a(new Runnable() {
-
-            @Override
-            public void run() {
-                if (NumberforB[0] != Minecraft.getMinecraft().gameSettings.keyBindings[NumberforB[1]].getKeyCode()) {
-                    NumberforB[0] = Minecraft.getMinecraft().gameSettings.keyBindings[NumberforB[1]].getKeyCode();
-                    NBTTagCompound tmpNBTTag = MyNBTSetting.readNBTSettings();
-                    tmpNBTTag.setInteger("Finder: Menu", Minecraft.getMinecraft().gameSettings.keyBindings[NumberforB[1]].getKeyCode());
-                    MyNBTSetting.saveNBTSettings(tmpNBTTag);
-                    System.out.println("Saved B");
-                }
-                if (NumberforN[0] != Minecraft.getMinecraft().gameSettings.keyBindings[NumberforN[1]].getKeyCode()) {
-                    NumberforN[0] = Minecraft.getMinecraft().gameSettings.keyBindings[NumberforN[1]].getKeyCode();
-                    NBTTagCompound tmpNBTTag = MyNBTSetting.readNBTSettings();
-                    tmpNBTTag
-                            .setInteger("Finder: Add/Delete Waypoint", Minecraft.getMinecraft().gameSettings.keyBindings[NumberforN[1]].getKeyCode());
-                    MyNBTSetting.saveNBTSettings(tmpNBTTag);
-                    System.out.println("Saved N");
-                }
-                // TODO Auto-generated method stub
-                if (thePlayer == null) {
-                    if (MC.thePlayer != null) {
-                        thePlayer = MC.thePlayer;
-                    }
-                }
-                if (theWorld == null) {
-                    if (MC.theWorld != null) {
-                        theWorld = MC.theWorld;
-                        mainDraw = Tessellator.instance;
-                    }
-                }
-
-                if (thePlayer != null && theWorld != null) {
-                    loaded = true;
-                    if (thePlayer != MC.thePlayer) {
-                        thePlayer = null;
-                        loaded = false;
-                        runOnEnter = false;
-                    }
-                    if (theWorld != MC.theWorld) {
-                        theWorld = null;
-                        loaded = false;
-                        runOnEnter = false;
-                    }
-
-
-                }
-                if (loaded) {
-                    if (!runOnEnter) {
-                        runOnEnter = true;
-                        eventManager.playerEnterWorld();
-                    }
-                    eventManager.gameTick();
-                }
+    @SuppressWarnings("unused")
+    public void onClientTick(TickEvent.ClientTickEvent e) {
+        if (gui != null && menuKey.isPressed()) {
+            if (MC.currentScreen == gui) {
+                MC.displayGuiScreen(null);
+            } else {
+                MC.displayGuiScreen(gui);
             }
-        });
-        ticker = 0;
+        }
     }
+
+    @SubscribeEvent
+    @SuppressWarnings("unused")
+    public void playerEnter(FMLNetworkEvent.ClientConnectedToServerEvent e) {
+        this.gui = new FM_Gui();
+        this.clientRunning = true;
+        timer.scheduleAtFixedRate(new Finder(), 0, 50);
+    }
+
+    @SubscribeEvent
+    @SuppressWarnings("unused")
+    public void playerExit(FMLNetworkEvent.ClientDisconnectionFromServerEvent e) {
+        this.gui = null;
+        this.clientRunning = false;
+        timer.cancel();
+    }
+
+    private boolean isSearching() {
+        return !searching.isEmpty() && !searching.equalsIgnoreCase("nothing");
+    }
+
+    private static class Finder extends TimerTask {
+
+        transient WorldClient world;
+        transient EntityPlayerSP player;
+
+        public void run() {
+            if (MC.theWorld == null || MC.thePlayer == null) {
+                return;
+            }
+            if (instance.clientRunning && instance.isSearching()) {
+                world = MC.theWorld;
+                player = MC.thePlayer;
+                AxisAlignedBB aabb = player.getEntityBoundingBox().expandXyz(instance.range);
+                List<Entity> list = world.getEntitiesWithinAABB(Entity.class, aabb, ContainsEntitySelector.INSTANCE);
+                Collections.sort(list, new EntityDistanceComparator(player));
+                List<TileEntity> tileCopy = Lists.newArrayList(world.loadedTileEntityList);
+                List<BlockPos> poses = Lists.newArrayList();
+                BlockPos playerPos = player.getPosition();
+                double t = instance.range * instance.range;
+                for (TileEntity te : tileCopy) {
+                    BlockPos pos = te.getPos().toImmutable();
+                    if (pos.distanceSq(playerPos) <= t) {
+                        poses.add(pos);
+                    }
+                }
+                int x = (int) (player.posX + 0.5);
+                int y = (int) (player.posY);
+                int z = (int) (player.posZ + 0.5);
+                Iterable<BlockPos> iterable = BlockPos.getAllInBox(new BlockPos(x - instance.range, Math.max(0, y - instance.range), z - instance
+                        .range), new BlockPos(x + instance.range, Math.min(255, y + instance.range), z + instance.range));
+                for (BlockPos pos : iterable) {
+                    if (world.getBlockState(pos).getBlock().getUnlocalizedName().toLowerCase().contains(instance.searching.toLowerCase())) {
+                        poses.add(pos);
+                    }
+                }
+                Collections.sort(poses, new TileDistanceComparator(player));
+                instance.found = list.size() + poses.size();
+                instance.eventManager.update(poses, list);
+            }
+        }
+    }
+
+    private static class ContainsEntitySelector implements Predicate<Entity> {
+
+        private static final ContainsEntitySelector INSTANCE = new ContainsEntitySelector();
+
+        private ContainsEntitySelector() {
+        }
+
+        @Override public boolean apply(@Nullable Entity input) {
+            return input != null && input.getName().toLowerCase().contains(instance.searching.toLowerCase());
+        }
+    }
+
+    private static class EntityDistanceComparator implements Comparator<Entity> {
+
+        private final double x, y, z;
+
+        private EntityDistanceComparator(EntityPlayerSP player) {
+            this.x = player.posX;
+            this.y = player.posY;
+            this.z = player.posZ;
+        }
+
+        @Override public int compare(Entity o1, Entity o2) {
+            double t = o1.getDistanceSq(x, y, z) - o2.getDistanceSq(x, y, z);
+            return t < 0 ? -1 : 1;
+        }
+    }
+
+    private static class TileDistanceComparator implements Comparator<BlockPos> {
+
+        private final double x, y, z;
+
+        private TileDistanceComparator(EntityPlayerSP player) {
+            this.x = player.posX;
+            this.y = player.posY;
+            this.z = player.posZ;
+        }
+
+        @Override public int compare(BlockPos o1, BlockPos o2) {
+            return (int) (o1.distanceSq(x, y, z) - o2.distanceSq(x, y, z));
+        }
+    }
+
 }
