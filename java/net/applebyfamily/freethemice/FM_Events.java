@@ -63,22 +63,22 @@ class FM_Events {
             switch (i) {
                 case 0:
                     RenderUtils.blockESPBox(pos, new Color(0, 0, 0.9F));
-                    i++;
                     break;
                 case 1:
                     RenderUtils.blockESPBox(pos, new Color(0, 0.9F, 0));
-                    i++;
                     break;
                 case 2:
                     RenderUtils.blockESPBox(pos, new Color(0.9F, 0.9F, 0.2F));
-                    i++;
                     break;
                 case 3:
                     RenderUtils.blockESPBox(pos, new Color(0.9F, 0.4F, 0));
-                    i++;
                     break;
                 default:
                     RenderUtils.blockESPBox(pos, new Color(0.9F, 0, 0));
+            }
+            i++;
+            if (i > 100) {
+                break;
             }
         }
 
@@ -87,22 +87,22 @@ class FM_Events {
             switch (i) {
                 case 0:
                     RenderUtils.entityESPBox(e, new Color(0, 0, 0.9F));
-                    i++;
                     break;
                 case 1:
                     RenderUtils.entityESPBox(e, new Color(0, 0.9F, 0));
-                    i++;
                     break;
                 case 2:
                     RenderUtils.entityESPBox(e, new Color(0.9F, 0.9F, 0.2F));
-                    i++;
                     break;
                 case 3:
                     RenderUtils.entityESPBox(e, new Color(0.9F, 0.4F, 0));
-                    i++;
                     break;
                 default:
                     RenderUtils.entityESPBox(e, new Color(0.9F, 0, 0));
+            }
+            i++;
+            if (i > 100) {
+                break;
             }
         }
         isRendering = false;
