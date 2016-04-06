@@ -12,7 +12,6 @@ import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -20,7 +19,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -35,16 +33,15 @@ public class FinderMod {
     static final String MOD_ID = "Finder Mod";
     static final String VERSION = "1.0.19";
     private static final Minecraft MC = Minecraft.getMinecraft();
-    public static FinderMod instance;
+    static FinderMod instance;
     int range = 30;
     String searching = "";
     int found = 0;
+    private Timer timer;
     private FM_Events eventManager;
-    // new fields
     private KeyBinding menuKey;
     private FM_Gui gui;
     private boolean clientRunning = false;
-    Timer timer;
 
     @EventHandler
     @SuppressWarnings("unused")
@@ -112,9 +109,12 @@ public class FinderMod {
                 BlockPos playerPos = player.getPosition();
                 double t = instance.range * instance.range;
                 for (TileEntity te : tileCopy) {
-                    BlockPos pos = te.getPos().toImmutable();
-                    if (pos.distanceSq(playerPos) <= t) {
-                        poses.add(pos);
+                    String name = TileEntity.classToNameMap.get(te.getClass());
+                    if (name != null && name.toLowerCase().contains(instance.searching.toLowerCase())) {
+                        BlockPos pos = te.getPos().toImmutable();
+                        if (pos.distanceSq(playerPos) <= t) {
+                            poses.add(pos);
+                        }
                     }
                 }
                 int x = (int) (player.posX + 0.5);
@@ -123,7 +123,8 @@ public class FinderMod {
                 Iterable<BlockPos> iterable = BlockPos.getAllInBox(new BlockPos(x - instance.range, Math.max(0, y - instance.range), z - instance
                         .range), new BlockPos(x + instance.range, Math.min(255, y + instance.range), z + instance.range));
                 for (BlockPos pos : iterable) {
-                    if (world.getBlockState(pos).getBlock().getUnlocalizedName().toLowerCase().contains(instance.searching.toLowerCase())) {
+                    if (!poses.contains(pos) && world.getBlockState(pos).getBlock().getUnlocalizedName().toLowerCase().contains(instance.searching
+                            .toLowerCase())) {
                         poses.add(pos);
                     }
                 }
